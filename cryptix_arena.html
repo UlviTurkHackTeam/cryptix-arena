@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRYPTIX ARENA - Crypto CTF | Forged by Ülvi Eyvazzade</title>
+<style>
+  :root{
+    --bg:#0a0a12; --panel:#12121f; --card:#161627; --line:#2a2a44;
+    --cyan:#00e5ff; --red:#ff2e63; --green:#00ff88; --yellow:#ffd93d; --purple:#b967ff;
+    --text:#e8e8f0; --dim:#8888a0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Segoe UI",Consolas,monospace,sans-serif;
+    min-height:100vh; overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+    background-size:42px 42px;
+  }
+  .wrap{position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:26px 20px 60px;}
+
+  header{text-align:center; margin-bottom:26px;}
+  .logo{
+    font-size:clamp(42px,8vw,84px); font-weight:900; letter-spacing:14px; line-height:1;
+    background:linear-gradient(90deg, var(--cyan), var(--purple), var(--red));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 18px rgba(0,229,255,.35));
+    animation:logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse{0%,100%{filter:drop-shadow(0 0 14px rgba(0,229,255,.30))}50%{filter:drop-shadow(0 0 26px rgba(255,46,99,.55))}}
+  .logo small{display:block; font-size:15px; letter-spacing:8px; color:var(--dim); font-weight:400; margin-top:6px;}
+  .forged{
+    display:inline-block; margin-top:14px; padding:7px 22px; border:1px solid var(--red);
+    color:var(--red); letter-spacing:3px; font-size:13px; border-radius:4px;
+    background:rgba(255,46,99,.07);
+  }
+  .forged b{color:#fff;}
+
+  .progress-wrap{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin-bottom:26px;}
+  .progress-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .progress-top h2{font-size:17px; letter-spacing:2px; color:var(--cyan);}
+  .progress-top span{font-family:Consolas,monospace; color:var(--yellow); font-size:16px; font-weight:700;}
+  .bar{height:14px; background:#0d0d18; border:1px solid var(--line); border-radius:7px; overflow:hidden;}
+  .bar-fill{
+    height:100%; width:0%; border-radius:7px;
+    background:linear-gradient(90deg, var(--cyan), var(--green));
+    box-shadow:0 0 12px rgba(0,255,136,.5);
+    transition:width .5s ease;
+  }
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:18px;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px;
+    cursor:pointer; position:relative; transition:transform .15s, box-shadow .15s, border-color .3s;
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .card:hover{transform:translateY(-3px); box-shadow:0 8px 26px rgba(0,229,255,.12); border-color:#3a3a5a;}
+  .card.solved{border-color:var(--green); box-shadow:0 0 18px rgba(0,255,136,.18);}
+  .card-head{display:flex; justify-content:space-between; align-items:center;}
+  .num{
+    width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--red),#7a0b2e); font-weight:900; font-size:15px; color:#fff;
+    font-family:Consolas,monospace;
+  }
+  .badge{font-size:10px; letter-spacing:2px; padding:4px 10px; border-radius:20px; font-weight:700;}
+  .b-easy{background:rgba(0,255,136,.12); color:var(--green); border:1px solid rgba(0,255,136,.4);}
+  .b-mid {background:rgba(255,217,61,.12); color:var(--yellow); border:1px solid rgba(255,217,61,.4);}
+  .b-hard{background:rgba(255,46,99,.12); color:var(--red); border:1px solid rgba(255,46,99,.4);}
+  .card h3{font-size:16px; letter-spacing:1px; color:#fff;}
+  .ctype{font-size:11px; color:var(--cyan); letter-spacing:1px; font-family:Consolas,monospace;}
+  .card .mini{font-size:11px; color:var(--dim);}
+  .solved-tag{
+    position:absolute; top:-10px; right:14px; background:var(--green); color:#06130b;
+    font-size:11px; font-weight:900; letter-spacing:2px; padding:4px 12px; border-radius:20px;
+    display:none; box-shadow:0 0 14px rgba(0,255,136,.6);
+  }
+  .card.solved .solved-tag{display:block; animation:pop .3s ease;}
+  @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  .card .open-hint{font-size:10px; color:var(--purple); letter-spacing:2px; margin-top:4px;}
+
+  /* ── MODAL ── */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,5,12,.82); backdrop-filter:blur(4px);
+    z-index:50; display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  .overlay.show{display:flex; animation:fadeIn .2s ease;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    max-width:640px; width:100%; max-height:92vh; overflow-y:auto; padding:26px;
+    position:relative; box-shadow:0 0 40px rgba(0,229,255,.15);
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(26px); opacity:0}to{transform:translateY(0); opacity:1}}
+  .modal::-webkit-scrollbar{width:6px;}
+  .modal::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
+  .close{
+    position:absolute; top:14px; right:16px; background:none; border:none; color:var(--dim);
+    font-size:24px; cursor:pointer; line-height:1; font-family:Consolas,monospace;
+  }
+  .close:hover{color:var(--red);}
+  .m-head{display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
+  .m-title{font-size:20px; font-weight:900; letter-spacing:1px; color:#fff; flex:1;}
+  .m-scenario{
+    background:#0c0c18; border:1px solid var(--line); border-left:4px solid var(--purple);
+    border-radius:8px; padding:14px; font-size:13px; line-height:1.65; color:var(--text); margin-bottom:14px;
+  }
+  .m-scenario b{color:var(--purple);}
+  .m-encoded{
+    background:#0c0c18; border:1px dashed var(--line); border-radius:8px; padding:14px;
+    font-family:Consolas,monospace; font-size:13px; color:var(--yellow); word-break:break-all;
+    margin-bottom:14px; line-height:1.6; user-select:all;
+  }
+  .m-cols{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
+  @media(max-width:520px){.m-cols{grid-template-columns:1fr;}}
+  .m-box{background:#0c0c18; border:1px solid var(--line); border-radius:8px; padding:12px;}
+  .m-box h4{font-size:11px; letter-spacing:2px; margin-bottom:7px;}
+  .m-box.hintbox h4{color:var(--purple);}
+  .m-box.toolbox h4{color:var(--cyan);}
+  .m-box p{font-size:12px; color:var(--text); line-height:1.55;}
+  .m-box .tool{display:inline-block; margin:3px 4px 0 0; padding:4px 10px; background:rgba(0,229,255,.08);
+    border:1px solid rgba(0,229,255,.3); border-radius:14px; font-size:11px; color:var(--cyan); font-family:Consolas,monospace;}
+  .in-row{display:flex; gap:8px; margin-bottom:8px;}
+  .in-row input{
+    flex:1; background:#0c0c18; border:1px solid var(--line); border-radius:8px; color:#fff;
+    font-family:Consolas,monospace; font-size:13px; padding:11px 12px; outline:none; transition:border .2s;
+  }
+  .in-row input:focus{border-color:var(--cyan); box-shadow:0 0 10px rgba(0,229,255,.15);}
+  .in-row button{
+    background:linear-gradient(135deg,var(--cyan),#007a99); color:#04131a; border:none; border-radius:8px;
+    font-weight:900; font-size:12px; letter-spacing:1px; padding:0 18px; cursor:pointer;
+    font-family:Consolas,monospace; transition:filter .15s;
+  }
+  .in-row button:hover{filter:brightness(1.2);}
+  .m-result{font-family:Consolas,monospace; font-size:13px; font-weight:700; letter-spacing:1px; min-height:20px;}
+  .m-result.ok{color:var(--green);}
+  .m-result.fail{color:var(--red); animation:shake .45s ease;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+
+  footer{text-align:center; margin-top:34px; color:var(--dim); font-size:12px; letter-spacing:2px;}
+  footer .heart{color:var(--red);}
+
+  .confetti{position:fixed; top:-14px; width:10px; height:16px; z-index:99; pointer-events:none; border-radius:2px; animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg); opacity:0;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">CRYPTIX<span style="color:#fff;">&nbsp;ARENA</span><small>KRİPTOGRAFİ CTF YARIŞMASI</small></div>
+    <div class="forged">FORGED BY <b>ÜLVI EYVAZZADE</b></div>
+  </header>
+
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <h2>⚔ İLERLEME DURUMU</h2>
+      <span id="pCount">0 / 10 BAYRAK</span>
+    </div>
+    <div class="bar"><div class="bar-fill" id="pBar"></div></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    CRYPTIX ARENA v2.0 &nbsp;•&nbsp; FORGED BY <span class="heart">ÜLVI EYVAZZADE</span> &nbsp;•&nbsp; EĞİTİM AMAÇLIDIR
+  </footer>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CRYPTIX ARENA - GÖREV VERİTABANI (10 Kriptografi görevi)
+//  İpucu: minimum düzeyde. Flag'ler koda GÖMÜLÜ DEĞİLDİR.
+// ═══════════════════════════════════════════════════════
+const CHALLENGES = [
+  {
+    id:1, title:"Temel Savaşçı", diff:"Kolay", type:"Base64",
+    encoded:"Q1RGe2Jhc0U2NF8xc18zYXN5fQ==",
+    scenario:"Bir ajan, düşman sunucusundan bir mesaj ele geçirdi. Mesaj harf, rakam ve '=' işaretiyle biten tuhaf bir yazı: <b>Q1RGe2Jhc0U2NF8xc18zYXN5fQ==</b>. Ajan bunun bildiği bir kodlama olduğundan emin ama çözemiyor.",
+    hint:"64 karakterlik bir alfabe kullanır.",
+    tools:["CyberChef","base64 -d"],
+    flag:"CTF{basE64_1s_3asy}"
+  },
+  {
+    id:2, title:"Sezar'ın Dönüşü", diff:"Kolay", type:"Sezar Şifresi",
+    encoded:"HYK{h4j5fw_5qi_gzy_l5qi}",
+    scenario:"Antik bir tablette şifreli bir yazı bulundu: <b>HYK{h4j5fw_5qi_gzy_l5qi}</b>. Tarihçiler bunun Roma döneminde kullanılan bir kaydırma yöntemi olduğunu söylüyor. Harfler birkaç adım kaydırılmış.",
+    hint:"Alfabede kaydırma — 25 deneme yeter.",
+    tools:["dcode.fr","CyberChef"],
+    flag:"CTF{c4e5ar_0ld_but_g0ld}"
+  },
+  {
+    id:3, title:"Hex Dünyası", diff:"Kolay", type:"Hexadecimal",
+    encoded:"4354467B6833785F31735F6330306C7D",
+    scenario:"Laboratuvar kayıtlarında sadece sayılardan oluşan bir veri var: <b>4354467B6833785F31735F6330306C7D</b>. Bilim insanları bunun aslında bir mesaj sakladığını düşünüyor. Rakamlar 0-9 ve A-F arasında.",
+    hint:"Çift haneli sayılar birer harf saklıyor.",
+    tools:["CyberChef","xxd -r"],
+    flag:"CTF{h3x_1s_c00l}"
+  },
+  {
+    id:4, title:"İkili Sinyal", diff:"Orta", type:"Binary (ASCII)",
+    encoded:"010000110101010001000110011110110110001000110001011011100011010001110010011110010101111100110001011100110101111101100110011101010110111001111101",
+    scenario:"Uydudan gelen sinyal sadece 0 ve 1'lerden oluşuyor. Yer istasyonu bunun rastgele gürültü olmadığından emin: <b>0100001101010100...</b> Sinyali deşifre et.",
+    hint:"Her 8 bit bir karakterdir.",
+    tools:["CyberChef","Python"],
+    flag:"CTF{b1n4ry_1s_fun}"
+  },
+  {
+    id:5, title:"Mors Alfabesi", diff:"Orta", type:"Morse Kodu",
+    encoded:"-.-. - ..-. -.--. -- ----- .-. ... ...-- ..--.- -.-. ----- -.. ...-- -.--.-",
+    scenario:"Eski bir telsiz kaydında nokta ve çizgilerden oluşan bir iletim yakalandı: <b>-.-. - ..-. -.--.</b> Bu işaret sistemi 1800'lerden beri denizciler tarafından kullanılıyor.",
+    hint:"Nokta ve çizgiler bir alfabeyi temsil ediyor.",
+    tools:["morsecode.world","CyberChef"],
+    flag:"CTF{m0rs3_c0d3}"
+  },
+  {
+    id:6, title:"13'ün Laneti", diff:"Kolay", type:"ROT13",
+    encoded:"PGS{e0g13_e0pxf}",
+    scenario:"Karanlık bir forumda garip bir mesaj dolaşıyor: <b>PGS{e0g13_e0pxf}</b>. Uzmanlar bunun 13 sayısıyla ilgili bir lanet olduğunu söylüyor. Aynı işlem iki kez uygulanınca mesaj çözülüyor.",
+    hint:"13 kaydırma — iki kez uygulanınca kendini çözer.",
+    tools:["CyberChef","tr"],
+    flag:"CTF{r0t13_r0cks}"
+  },
+  {
+    id:7, title:"Vigenère Kalesi", diff:"Zor", type:"Vigenère",
+    encoded:"MXD{F1K3L3B3_1W_AV4WQSG}",
+    scenario:"Kale komutanı mesajlarını çok katmanlı bir yöntemle şifreliyor. Yakalanan mesaj: <b>MXD{F1K3L3B3_1W_AV4WQSG}</b>. Bu yöntem tek bir kaydırma yerine <b>bir kelimeyi</b> tekrar tekrar kullanır.",
+    hint:"Anahtar tek bir kelime.",
+    tools:["dcode.fr","CyberChef"],
+    flag:"CTF{v1g3n3r3_1s_cl4ssic}"
+  },
+  {
+    id:8, title:"XOR Operatörü", diff:"Zor", type:"XOR (Hex)",
+    encoded:"697E6C51521A58751B5975595D19195E57",
+    scenario:"Hacker'ın not defterinde hex formatında bir blok bulundu: <b>697E6C51521A58751B5975595D19195E57</b>. Analizciler bunun tek bir byte anahtarla XOR'lanmış olduğunu tahmin ediyor.",
+    hint:"Tek bir byte anahtar gizlenmiş.",
+    tools:["CyberChef","CyberChef XOR Brute"],
+    flag:"CTF{x0r_1s_sw33t}"
+  },
+  {
+    id:9, title:"Atbash Aynası", diff:"Orta", type:"Atbash",
+    encoded:"XGU{4gy4sh_i3e3ih3w}",
+    scenario:"Gizli bir örgüt mesajlarını ayna yöntemiyle yazıyor. Ele geçirilen metin: <b>XGU{4gy4sh_i3e3ih3w}</b>. A harfinin Z, B'nin Y olduğu bir sistem olduğu biliniyor.",
+    hint:"Alfabenin ayna görüntüsü.",
+    tools:["CyberChef","dcode.fr"],
+    flag:"CTF{4tb4sh_r3v3rs3d}"
+  },
+  {
+    id:10, title:"Son XOR Sınavı", diff:"Zor", type:"XOR (Hex)",
+    encoded:"1601132E2D65270A6132643B0A3365270A33203B28",
+    scenario:"Final sınavı: yakalanan son mesaj yine XOR ile şifrelenmiş: <b>1601132E2D65270A...</b>. Ama bu sefer anahtar farklı. 8. görevde öğrendiğin yöntemi tekrarla — anahtar 0x00-0xFF arasında.",
+    hint:"Önceki XOR görevindeki yöntem.",
+    tools:["CyberChef XOR Brute"],
+    flag:"CTF{x0r_4g41n_f0r_fun}"
+  }
+];
+
+const DIFF_CLASS = {"Kolay":"b-easy","Orta":"b-mid","Zor":"b-hard"};
+const solved = new Set();
+
+// ── KARTLARI OLUŞTUR ──
+const grid = document.getElementById("grid");
+CHALLENGES.forEach(c => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.id = "card-" + c.id;
+  card.innerHTML = `
+    <div class="solved-tag">✔ ÇÖZÜLDÜ</div>
+    <div class="card-head">
+      <div class="num">${String(c.id).padStart(2,"0")}</div>
+      <span class="badge ${DIFF_CLASS[c.diff]}">${c.diff}</span>
+    </div>
+    <h3>${c.title}</h3>
+    <div class="ctype">🔐 ${c.type}</div>
+    <div class="mini">Göreve girmek için tıkla →</div>
+    <div class="open-hint">📜 SENARYO & MİSYON</div>
+  `;
+  card.addEventListener("click", () => openModal(c.id));
+  grid.appendChild(card);
+});
+
+// ── MODAL AÇ ──
+const overlay = document.getElementById("overlay");
+const modal = document.getElementById("modal");
+let currentId = null;
+
+function openModal(id){
+  const c = CHALLENGES.find(x => x.id === id);
+  currentId = id;
+  const isSolved = solved.has(id);
+  modal.innerHTML = `
+    <button class="close" onclick="closeModal()">✕</button>
+    <div class="m-head">
+      <div class="num">${String(c.id).padStart(2,"0")}</div>
+      <div class="m-title">${c.title}</div>
+      <span class="badge ${DIFF_CLASS[c.diff]}">${c.diff}</span>
+    </div>
+    <div class="m-scenario">📜 <b>MİSYON:</b> ${c.scenario}</div>
+    <div class="m-encoded">${c.encoded}</div>
+    <div class="m-cols">
+      <div class="m-box hintbox">
+        <h4>💡 İPUCU</h4>
+        <p>${c.hint}</p>
+      </div>
+      <div class="m-box toolbox">
+        <h4>🛠 ÖNERİLEN ARAÇLAR</h4>
+        <p>${c.tools.map(t => `<span class="tool">${t}</span>`).join("")}</p>
+      </div>
+    </div>
+    <div class="in-row">
+      <input type="text" id="m-in" placeholder="CTF{...} flag gir" autocomplete="off" spellcheck="false">
+      <button onclick="verify()">DOĞRULA</button>
+    </div>
+    <div class="m-result" id="m-res">${isSolved ? "✔ Bu görevi zaten çözdün." : ""}</div>
+  `;
+  if (isSolved) modal.querySelector(".m-result").classList.add("ok");
+  overlay.classList.add("show");
+  const inp = document.getElementById("m-in");
+  if (inp){
+    inp.focus();
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") verify(); });
+  }
+}
+
+function closeModal(){
+  overlay.classList.remove("show");
+  currentId = null;
+}
+
+overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// ── DOĞRULAMA ──
+function verify(){
+  if (currentId === null) return;
+  const c = CHALLENGES.find(x => x.id === currentId);
+  const input = document.getElementById("m-in");
+  const res = document.getElementById("m-res");
+  const val = (input.value || "").trim();
+
+  if (val.toLowerCase() === c.flag.toLowerCase()){
+    solved.add(currentId);
+    document.getElementById("card-" + currentId).classList.add("solved");
+    res.className = "m-result ok";
+    res.textContent = "✅ BAŞARILI! Bayrak doğru. 🏁";
+    if (input.value.toLowerCase() !== c.flag.toLowerCase()) input.value = c.flag;
+    input.style.borderColor = "var(--green)";
+    updateProgress();
+    confetti();
+  } else {
+    res.className = "m-result fail";
+    res.textContent = val === "" ? "❌ Önce bir flag gir!" : "❌ YANLIŞ! Tekrar dene.";
+    input.style.borderColor = "var(--red)";
+    setTimeout(() => { input.style.borderColor = "var(--line)"; }, 1200);
+  }
+}
+
+// ── İLERLEME ──
+function updateProgress(){
+  const n = solved.size;
+  document.getElementById("pCount").textContent = n + " / " + CHALLENGES.length + " BAYRAK";
+  document.getElementById("pBar").style.width = (n / CHALLENGES.length * 100) + "%";
+  if (n === CHALLENGES.length){
+    setTimeout(() => alert("🏆 TEBRİKLER! 10/10 görevi çözdün. CRYPTIX ARENA şampiyonusun!"), 300);
+  }
+}
+
+// ── KONFETİ ──
+function confetti(){
+  const colors = ["#00e5ff","#ff2e63","#00ff88","#ffd93d","#b967ff","#ffffff"];
+  for (let i = 0; i < 70; i++){
+    const el = document.createElement("div");
+    el.className = "confetti";
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDuration = (1.4 + Math.random() * 1.6) + "s";
+    el.style.animationDelay = (Math.random() * 0.5) + "s";
+    el.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3400);
+  }
+}
+</script>
+</body>
+</html>
